@@ -16,15 +16,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    3rd/QJsonModel/qjsonmodel.cpp \
+    code/jsoneditwidget.cpp \
     code/main.cpp \
     code/mainwidget.cpp \
     code/timeconvertwidget.cpp
 
 HEADERS += \
+    3rd/QJsonModel/qjsonmodel.h \
+    code/jsoneditwidget.hpp \
     code/mainwidget.hpp \
     code/timeconvertwidget.hpp
 
 FORMS += \
+    ui/jsoneditwidget.ui \
     ui/mainwidget.ui \
     ui/timeconvertwidget.ui
 

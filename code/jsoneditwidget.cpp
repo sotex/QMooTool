@@ -4,6 +4,7 @@
 #include "3rd/QJsonModel/qjsonmodel.h"
 
 #include <QJsonDocument>
+#include <QCborValue>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFile>
@@ -121,7 +122,7 @@ void jsoneditwidget::on_pbtn_LoadFile_clicked()
         QFileDialog::getOpenFileName(this,
                                      QStringLiteral("加载文件"),
                                      QString(),
-                                     QStringLiteral("json (*.json *.geojson);;所有文件 (*.*)"));
+                                     QStringLiteral("json (*.json *.geojson);;cbor (*.cbor);;所有文件 (*.*)"));
     if(filename.isEmpty()) {
         return;
     }
@@ -134,10 +135,27 @@ void jsoneditwidget::on_pbtn_LoadFile_clicked()
         return;
     }
     // 读取文件，并进行处理
-    QByteArray jsontext = f.readAll();
+    QByteArray inputtext = f.readAll();
+    // 是否为cbor文件
+    if(filename.size() > 5 &&
+            filename.right(5) == QStringLiteral(".cbor")) {
+        QCborParserError e;
+        QCborValue cbor = QCborValue::fromCbor(inputtext, &e);
+        if(e.error == QCborError::NoError) {
+            QJsonValue json = cbor.toJsonValue();
+            if(json.isObject()) {
+                QString jsontext = QString::fromUtf8(QJsonDocument(json.toObject()).toJson());
+                ui->textEdit_JsonText->setText(jsontext);
+            } else if(json.isArray()) {
+                QString jsontext = QString::fromUtf8(QJsonDocument(json.toArray()).toJson());
+                ui->textEdit_JsonText->setText(jsontext);
+            }
+            return;
+        }
+    }
     QJsonDocument doc;
-    if(processJsonText(this, jsontext, doc)) {
-        ui->textEdit_JsonText->setText(QString::fromUtf8(jsontext));
+    if(processJsonText(this, inputtext, doc)) {
+        ui->textEdit_JsonText->setText(QString::fromUtf8(inputtext));
     }
 }
 
@@ -151,10 +169,29 @@ void jsoneditwidget::on_pbtn_SaveFile_clicked()
         QFileDialog::getSaveFileName(this,
                                      QStringLiteral("保存为文件"),
                                      QString(),
-                                     QStringLiteral("json (*.json *.geojson);;所有文件 (*.*)"));
+                                     QStringLiteral("json (*.json *.geojson);;cbor (*.cbor);;所有文件 (*.*)"));
     if(savefilename.isEmpty()) {
         return;
     }
+
+    // 是否为cbor文件
+    if(savefilename.size() > 5 &&
+            savefilename.right(5) == QStringLiteral(".cbor")) {
+        QJsonDocument doc;
+        if(!processJsonText(this, outtext, doc) || doc.isEmpty()) {
+            QMessageBox::warning(this,
+                                 QStringLiteral("数据无效"),
+                                 QStringLiteral("非有效JSON数据，无法保存为CBOR文件"),
+                                 QStringLiteral("确定"));
+            return;
+        }
+        if(doc.isObject()) {
+            outtext = QCborValue::fromJsonValue(doc.object()).toCbor();
+        } else if(doc.isArray()) {
+            outtext = QCborValue::fromJsonValue(doc.array()).toCbor();
+        }
+    }
+
     // 写入文件
     QFile f(savefilename);
     if(!f.open(QIODevice::WriteOnly)) {

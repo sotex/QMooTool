@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>jsoneditwidget</class>
+ <widget class="QSplitter" name="jsoneditwidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>503</height>
+   </rect>
+  </property>
+  <property name="orientation">
+   <enum>Qt::Horizontal</enum>
+  </property>
+  <widget class="QWidget" name="layoutWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbtn_Format">
+        <property name="text">
+         <string>格式化</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbtn_Compact">
+        <property name="text">
+         <string>压缩</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbtn_ToXML">
+        <property name="text">
+         <string>转换为XML</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbtn_LoadFile">
+        <property name="text">
+         <string>加载文件</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbtn_SaveFile">
+        <property name="text">
+         <string>存为文件</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pbtn_ShowTree">
+        <property name="text">
+         <string>可视化查看</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTextEdit" name="textEdit_JsonText">
+      <property name="acceptRichText">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QTreeView" name="treeView"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
