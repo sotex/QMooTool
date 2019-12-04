@@ -1,0 +1,3 @@
+[submodule "3rd/QJsonModel"]
+	path = 3rd/QJsonModel
+	url = https://github.com/dridk/QJsonModel.git

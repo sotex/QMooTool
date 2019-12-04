@@ -1,0 +1,168 @@
+﻿#include "code/jsoneditwidget.hpp"
+#include "ui_jsoneditwidget.h"
+
+#include "3rd/QJsonModel/qjsonmodel.h"
+
+#include <QJsonDocument>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QFile>
+#include <QDebug>
+
+Q_DECLARE_METATYPE(QJsonModel*)
+
+
+// 处理输入json
+static bool processJsonText(QWidget* parent,
+                            const QByteArray inputjson, QJsonDocument& outdoc)
+{
+    // 解析为json document
+    QJsonParseError error;
+    outdoc = QJsonDocument::fromJson(inputjson, &error);
+    if(error.error != QJsonParseError::NoError) {
+        // 获取错误位置文本
+        // 错误位置前面取30个字符，后面取30个字符
+        int raw0 = qMax(0, error.offset - 30);
+        int raw1 = qMin(inputjson.size(), error.offset + 30);   // 指向下一个有效字符首字节
+        // UTF8字符的第一个字节要么是 0xxx xxxx 要么是 111..0xxx 而不会是 10xxxxxx的
+        while(raw0 > (0) && ((inputjson[raw0] & 0xC0) == 0x80 )) {
+            --raw0;
+        }
+        while ((raw1 + 1) < inputjson.size() && ((inputjson[raw1] & (0xC0)) == 0x80 )) {
+            ++raw1;
+        }
+        // 获取错误输出文本
+        QString errstr = QString::fromUtf8(inputjson.mid(raw0, raw1 - raw0))
+                         + QStringLiteral("\r\n") + error.errorString();
+        QMessageBox::critical(parent,
+                              QStringLiteral("JOSN格式错误"),
+                              errstr,
+                              QStringLiteral("确定"));
+        return false;
+    }
+    return true;
+}
+
+jsoneditwidget::jsoneditwidget(QWidget* parent) :
+    QSplitter(parent),
+    ui(new Ui::jsoneditwidget)
+{
+    ui->setupUi(this);
+    //ui->textEdit_JsonText->setAcceptRichText(false);
+    // ui->textEdit_JsonText->setDocument()
+    ui->treeView->hide();
+
+    QJsonModel* model = new QJsonModel;
+    ui->treeView->setModel(model);
+    setProperty("model", QVariant::fromValue(model));
+
+    // 压缩和格式化是一样的
+    connect(ui->pbtn_Compact, &QPushButton::clicked,
+            this, &jsoneditwidget::on_pbtn_Format_clicked);
+}
+
+jsoneditwidget::~jsoneditwidget()
+{
+    delete ui;
+}
+
+void jsoneditwidget::on_pbtn_Format_clicked()
+{
+    // 获取输入文本
+    QString inputtex = ui->textEdit_JsonText->toPlainText();
+    if(inputtex.isEmpty()) {
+        return;
+    }
+    QByteArray inputjson = inputtex.toUtf8();
+
+    QJsonDocument doc;
+    if(!processJsonText(this, inputjson, doc)) {
+        return;
+    }
+
+    QJsonDocument::JsonFormat format = QJsonDocument::Indented;
+    if(sender() == ui->pbtn_Compact) {
+        format = QJsonDocument::Compact;
+    }
+
+    QByteArray outjson = doc.toJson(format);
+
+    ui->textEdit_JsonText->setText(QString::fromUtf8(outjson));
+}
+
+void jsoneditwidget::on_pbtn_ShowTree_clicked()
+{
+    // 根据当前按钮标题，判断显示还是隐藏
+    if(QStringLiteral("关闭可视化") == ui->pbtn_ShowTree->text()) {
+        ui->treeView->hide();
+        ui->pbtn_ShowTree->setText(QStringLiteral("可视化查看"));
+        return;
+    }
+    // 获取json文本
+    QString inputtex = ui->textEdit_JsonText->toPlainText();
+    if(inputtex.isEmpty()) {
+        return;
+    }
+    QByteArray inputjson = inputtex.toUtf8();
+    // 加载，如果失败了，则使用 processJsonText 弹出错误提示
+    QJsonModel* model = property("model").value<QJsonModel*>();
+    if(model->loadJson(inputjson)) {
+        ui->treeView->show();
+        ui->pbtn_ShowTree->setText(QStringLiteral("关闭可视化"));
+        return;
+    }
+    QJsonDocument doc;
+    processJsonText(this, inputjson, doc);
+}
+
+void jsoneditwidget::on_pbtn_LoadFile_clicked()
+{
+    QString filename =
+        QFileDialog::getOpenFileName(this,
+                                     QStringLiteral("加载文件"),
+                                     QString(),
+                                     QStringLiteral("json (*.json *.geojson);;所有文件 (*.*)"));
+    if(filename.isEmpty()) {
+        return;
+    }
+    QFile f(filename);
+    if(!f.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(this,
+                              QStringLiteral("读取文件错误"),
+                              f.errorString(),
+                              QStringLiteral("确定"));
+        return;
+    }
+    // 读取文件，并进行处理
+    QByteArray jsontext = f.readAll();
+    QJsonDocument doc;
+    if(processJsonText(this, jsontext, doc)) {
+        ui->textEdit_JsonText->setText(QString::fromUtf8(jsontext));
+    }
+}
+
+void jsoneditwidget::on_pbtn_SaveFile_clicked()
+{
+    QByteArray outtext = ui->textEdit_JsonText->toPlainText().toUtf8();
+    if(outtext.isEmpty()) {
+        return;
+    }
+    QString savefilename =
+        QFileDialog::getSaveFileName(this,
+                                     QStringLiteral("保存为文件"),
+                                     QString(),
+                                     QStringLiteral("json (*.json *.geojson);;所有文件 (*.*)"));
+    if(savefilename.isEmpty()) {
+        return;
+    }
+    // 写入文件
+    QFile f(savefilename);
+    if(!f.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(this,
+                              QStringLiteral("打开文件错误"),
+                              f.errorString(),
+                              QStringLiteral("确定"));
+        return;
+    }
+    f.write(outtext);
+}
