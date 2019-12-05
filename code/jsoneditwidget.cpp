@@ -1,6 +1,6 @@
 ﻿#include "code/jsoneditwidget.hpp"
 #include "ui_jsoneditwidget.h"
-
+#include "3rd/QCodeEditor/include/QJSONHighlighter"
 #include "3rd/QJsonModel/qjsonmodel.h"
 
 #include <QJsonDocument>
@@ -53,6 +53,10 @@ jsoneditwidget::jsoneditwidget(QWidget* parent) :
     // ui->textEdit_JsonText->setDocument()
     ui->treeView->hide();
 
+    // 设置文本编辑框语法高亮
+    ui->textEdit_JsonText->setHighlighter(new QJSONHighlighter());
+
+    // json模型
     QJsonModel* model = new QJsonModel;
     ui->treeView->setModel(model);
     setProperty("model", QVariant::fromValue(model));
@@ -88,7 +92,10 @@ void jsoneditwidget::on_pbtn_Format_clicked()
 
     QByteArray outjson = doc.toJson(format);
 
+    // 关闭自动更新，避免界面卡死(测试发现没啥效果)
+    ui->textEdit_JsonText->setUpdatesEnabled(false);
     ui->textEdit_JsonText->setText(QString::fromUtf8(outjson));
+    ui->textEdit_JsonText->setUpdatesEnabled(true);
 }
 
 void jsoneditwidget::on_pbtn_ShowTree_clicked()
@@ -136,6 +143,7 @@ void jsoneditwidget::on_pbtn_LoadFile_clicked()
     }
     // 读取文件，并进行处理
     QByteArray inputtext = f.readAll();
+    QString outtext;
     // 是否为cbor文件
     if(filename.size() > 5 &&
             filename.right(5) == QStringLiteral(".cbor")) {
@@ -144,19 +152,24 @@ void jsoneditwidget::on_pbtn_LoadFile_clicked()
         if(e.error == QCborError::NoError) {
             QJsonValue json = cbor.toJsonValue();
             if(json.isObject()) {
-                QString jsontext = QString::fromUtf8(QJsonDocument(json.toObject()).toJson());
-                ui->textEdit_JsonText->setText(jsontext);
+                outtext = QString::fromUtf8(QJsonDocument(json.toObject()).toJson());
             } else if(json.isArray()) {
-                QString jsontext = QString::fromUtf8(QJsonDocument(json.toArray()).toJson());
-                ui->textEdit_JsonText->setText(jsontext);
-            }
-            return;
+                outtext = QString::fromUtf8(QJsonDocument(json.toArray()).toJson());
+            }        }
+    }else{
+        QJsonDocument doc;
+        if(processJsonText(this, inputtext, doc)) {
+            outtext = QString::fromUtf8(inputtext);
         }
     }
-    QJsonDocument doc;
-    if(processJsonText(this, inputtext, doc)) {
-        ui->textEdit_JsonText->setText(QString::fromUtf8(inputtext));
+    if(outtext.isEmpty()) {
+        return;
     }
+
+    // 关闭自动更新，避免界面卡死(测试发现没啥效果)
+    ui->textEdit_JsonText->setUpdatesEnabled(false);
+    ui->textEdit_JsonText->setText(outtext);
+    ui->textEdit_JsonText->setUpdatesEnabled(true);
 }
 
 void jsoneditwidget::on_pbtn_SaveFile_clicked()

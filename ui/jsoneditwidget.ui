@@ -75,7 +75,7 @@
      </layout>
     </item>
     <item>
-     <widget class="QTextEdit" name="textEdit_JsonText">
+     <widget class="QCodeEditor" name="textEdit_JsonText">
       <property name="acceptRichText">
        <bool>true</bool>
       </property>
@@ -85,6 +85,13 @@
   </widget>
   <widget class="QTreeView" name="treeView"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QCodeEditor</class>
+   <extends>QTextEdit</extends>
+   <header>3rd/QCodeEditor/include/QCodeEditor</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

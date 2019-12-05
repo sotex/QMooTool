@@ -1,3 +1,6 @@
 [submodule "3rd/QJsonModel"]
 	path = 3rd/QJsonModel
 	url = https://github.com/dridk/QJsonModel.git
+[submodule "3rd/QCodeEditor"]
+	path = 3rd/QCodeEditor
+	url = https://github.com/sotex/QCodeEditor.git
