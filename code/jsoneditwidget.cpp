@@ -1,7 +1,11 @@
 ﻿#include "code/jsoneditwidget.hpp"
 #include "ui_jsoneditwidget.h"
-#include "3rd/QCodeEditor/include/QJSONHighlighter"
+#include "popcodedialog.hpp"
+
+#include "QJSONHighlighter"
 #include "3rd/QJsonModel/qjsonmodel.h"
+
+#include "3rd/jsonxmlconvert/json2xml.hpp"
 
 #include <QJsonDocument>
 #include <QCborValue>
@@ -44,9 +48,9 @@ static bool processJsonText(QWidget* parent,
     return true;
 }
 
-jsoneditwidget::jsoneditwidget(QWidget* parent) :
+JsonEditWidget::JsonEditWidget(QWidget* parent) :
     QSplitter(parent),
-    ui(new Ui::jsoneditwidget)
+    ui(new Ui::JsonEditWidget)
 {
     ui->setupUi(this);
     //ui->textEdit_JsonText->setAcceptRichText(false);
@@ -63,15 +67,15 @@ jsoneditwidget::jsoneditwidget(QWidget* parent) :
 
     // 压缩和格式化是一样的
     connect(ui->pbtn_Compact, &QPushButton::clicked,
-            this, &jsoneditwidget::on_pbtn_Format_clicked);
+            this, &JsonEditWidget::on_pbtn_Format_clicked);
 }
 
-jsoneditwidget::~jsoneditwidget()
+JsonEditWidget::~JsonEditWidget()
 {
     delete ui;
 }
 
-void jsoneditwidget::on_pbtn_Format_clicked()
+void JsonEditWidget::on_pbtn_Format_clicked()
 {
     // 获取输入文本
     QString inputtex = ui->textEdit_JsonText->toPlainText();
@@ -98,7 +102,7 @@ void jsoneditwidget::on_pbtn_Format_clicked()
     ui->textEdit_JsonText->setUpdatesEnabled(true);
 }
 
-void jsoneditwidget::on_pbtn_ShowTree_clicked()
+void JsonEditWidget::on_pbtn_ShowTree_clicked()
 {
     // 根据当前按钮标题，判断显示还是隐藏
     if(QStringLiteral("关闭可视化") == ui->pbtn_ShowTree->text()) {
@@ -123,7 +127,7 @@ void jsoneditwidget::on_pbtn_ShowTree_clicked()
     processJsonText(this, inputjson, doc);
 }
 
-void jsoneditwidget::on_pbtn_LoadFile_clicked()
+void JsonEditWidget::on_pbtn_LoadFile_clicked()
 {
     QString filename =
         QFileDialog::getOpenFileName(this,
@@ -172,7 +176,7 @@ void jsoneditwidget::on_pbtn_LoadFile_clicked()
     ui->textEdit_JsonText->setUpdatesEnabled(true);
 }
 
-void jsoneditwidget::on_pbtn_SaveFile_clicked()
+void JsonEditWidget::on_pbtn_SaveFile_clicked()
 {
     QByteArray outtext = ui->textEdit_JsonText->toPlainText().toUtf8();
     if(outtext.isEmpty()) {
@@ -215,4 +219,29 @@ void jsoneditwidget::on_pbtn_SaveFile_clicked()
         return;
     }
     f.write(outtext);
+}
+
+void JsonEditWidget::on_pbtn_ToXML_clicked()
+{
+    QByteArray inputjson = ui->textEdit_JsonText->toPlainText().toUtf8();
+    if(inputjson.isEmpty()){
+        return;
+    }
+    std::string xml = Json2Xml::json2xml(inputjson.data());
+    if(xml.empty()){
+        return;
+    }
+    QVariant pcdlg = property("PopCodeDialog");
+    PopCodeDialog* pDlg = nullptr;
+    if(pcdlg.isNull()){
+        pDlg =  new PopCodeDialog(this);
+        pDlg->setModal(false);
+        pDlg->setHighlighter(QStringLiteral("XML"));
+        pcdlg = QVariant::fromValue(pDlg);
+        setProperty("PopCodeDialog",pcdlg);
+    }else{
+        pDlg = pcdlg.value<PopCodeDialog*>();
+    }
+    pDlg->setText(QString::fromUtf8(xml.data(),xml.size()));
+    pDlg->exec();
 }

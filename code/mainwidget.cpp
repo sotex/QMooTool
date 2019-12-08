@@ -3,6 +3,7 @@
 
 #include "timeconvertwidget.hpp"
 #include "jsoneditwidget.hpp"
+#include "xmleditwidget.hpp"
 
 MainWidget::MainWidget(QWidget* parent)
     : QTabWidget(parent)
@@ -13,7 +14,9 @@ MainWidget::MainWidget(QWidget* parent)
     // 添加时间转换
     addTab(new TimeConvertWidget(this), QStringLiteral("时间转换"));
     // 添加JSON处理
-    addTab(new jsoneditwidget(this), QStringLiteral("JSON"));
+    addTab(new JsonEditWidget(this), QStringLiteral("JSON"));
+    // 添加XML处理
+    addTab(new XmlEditWidget(this),QStringLiteral("XML"));
 }
 
 MainWidget::~MainWidget()

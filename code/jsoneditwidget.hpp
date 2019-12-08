@@ -4,15 +4,15 @@
 #include <QSplitter>
 
 namespace Ui {
-class jsoneditwidget;
+class JsonEditWidget;
 }
 
-class jsoneditwidget : public QSplitter {
+class JsonEditWidget : public QSplitter {
     Q_OBJECT
 
 public:
-    explicit jsoneditwidget(QWidget* parent = nullptr);
-    ~jsoneditwidget();
+    explicit JsonEditWidget(QWidget* parent = nullptr);
+    ~JsonEditWidget();
 
 private slots:
     void on_pbtn_Format_clicked();
@@ -22,8 +22,10 @@ private slots:
 
     void on_pbtn_LoadFile_clicked();
 
+    void on_pbtn_ToXML_clicked();
+
 private:
-    Ui::jsoneditwidget* ui;
+    Ui::JsonEditWidget* ui;
 };
 
 #endif // JSONEDITWIDGET_HPP

@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui #xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,7 +16,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 INCLUDEPATH += 3rd/QCodeEditor/include
+INCLUDEPATH += 3rd/rapidjson/include
+INCLUDEPATH += 3rd/rapidxml-1.13
 
+# 定义下面的宏，解析的时候就不会抛出异常
+# 必须实现 void rapidxml::parse_error_handler(const char *what, void *where)
+# 函数来处理rapidxml解析时候的错误
+# DEFINES += RAPIDXML_NO_EXCEPTIONS
 
 SOURCES += \
     3rd/QCodeEditor/src/internal/QCXXHighlighter.cpp \
@@ -38,7 +44,9 @@ SOURCES += \
     code/jsoneditwidget.cpp \
     code/main.cpp \
     code/mainwidget.cpp \
-    code/timeconvertwidget.cpp
+    code/popcodedialog.cpp \
+    code/timeconvertwidget.cpp \
+    code/xmleditwidget.cpp
 
 HEADERS += \
     3rd/QCodeEditor/include/QCXXHighlighter \
@@ -78,12 +86,16 @@ HEADERS += \
     3rd/QJsonModel/qjsonmodel.h \
     code/jsoneditwidget.hpp \
     code/mainwidget.hpp \
-    code/timeconvertwidget.hpp
+    code/popcodedialog.hpp \
+    code/timeconvertwidget.hpp \
+    code/xmleditwidget.hpp
 
 FORMS += \
     ui/jsoneditwidget.ui \
     ui/mainwidget.ui \
-    ui/timeconvertwidget.ui
+    ui/popcodedialog.ui \
+    ui/timeconvertwidget.ui \
+    ui/xmleditwidget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
