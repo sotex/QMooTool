@@ -1,6 +1,7 @@
 ﻿#include "portinfoview.hpp"
 #include "ui_portinfoview.h"
 #include <QStandardItemModel>
+#include <QFileInfo>
 #include <QDebug>
 
 #ifdef WIN32
@@ -8,10 +9,45 @@
 // Need to link with Iphlpapi.lib and Ws2_32.lib
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <iphlpapi.h>
+#include <Iphlpapi.h>
+#include <Iprtrmib.h>
+#include <Psapi.h>
+
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
+//获取进程路径
+bool GetProcessPath(DWORD idProcess,QString& path,QString& name)
+{
+    // 获取进程路径
+    QString sPath;
+    // 打开进程句柄
+
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ, FALSE, idProcess);
+    if( nullptr == hProcess ) {
+        qDebug()<<"OpenProcess Error:"<< GetLastError();
+        return false;
+    }
+    HMODULE hMod;
+    DWORD cbNeeded;
+    // 获取路径
+    if(EnumProcessModules( hProcess, &hMod, sizeof(hMod), &cbNeeded)) {
+        QByteArray buffer(4096,'\0');
+        DWORD dwSize = GetModuleFileNameExA(hProcess,
+                                            hMod,
+                                            buffer.data(),
+                                            buffer.size());
+        if(dwSize > 0){
+            buffer.resize(static_cast<int>(dwSize));
+            path = QString::fromLocal8Bit(buffer);
+            name = QFileInfo(path).fileName();
+            CloseHandle( hProcess );
+            return true;
+        }
+    }
+    CloseHandle( hProcess );
+    return false;
+}
 #endif
 
 PortInfoView::PortInfoView(QWidget *parent) :
@@ -50,20 +86,24 @@ PortInfoView::~PortInfoView()
 void PortInfoView::on_pbtn_refresh_clicked()
 {
 #ifdef WIN32
-    // 分配内存，保存 TCP 列表
-    QByteArray buffer(sizeof(MIB_TCPTABLE)*65536,'\0');
-    PMIB_TCPTABLE pTcpTable = reinterpret_cast<MIB_TCPTABLE*>(buffer.data());
 
+    // 分配内存，保存 TCP 列表
+    QByteArray buffer(sizeof(MIB_TCPROW_OWNER_PID)*65536+sizeof(DWORD),'\0');
+    PMIB_TCPTABLE_OWNER_PID pTcpTable = reinterpret_cast<PMIB_TCPTABLE_OWNER_PID>(buffer.data());
+
+    // https://docs.microsoft.com/zh-cn/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedtcptable?redirectedfrom=MSDN
     ULONG dwSize = static_cast<ULONG>(buffer.size());
-    DWORD dwRetVal = GetTcpTable(pTcpTable,&dwSize,TRUE);
+    DWORD dwRetVal = GetExtendedTcpTable((PVOID)pTcpTable,&dwSize,
+                                         TRUE,AF_INET,TCP_TABLE_CLASS::TCP_TABLE_OWNER_PID_ALL,0);
     if(dwRetVal == ERROR_INSUFFICIENT_BUFFER){
         qDebug()<<"dwSize = "<<dwSize;
         buffer.resize(static_cast<int>(dwSize));
-        PMIB_TCPTABLE pTcpTable = reinterpret_cast<MIB_TCPTABLE*>(buffer.data());
-        dwRetVal = GetTcpTable(pTcpTable, &dwSize, TRUE);
+        pTcpTable = reinterpret_cast<PMIB_TCPTABLE_OWNER_PID>(buffer.data());
+        dwRetVal = GetExtendedTcpTable((PVOID)pTcpTable,&dwSize,
+                                       TRUE,AF_INET,TCP_TABLE_CLASS::TCP_TABLE_OWNER_PID_ALL,0);
     }
     if (dwRetVal == NO_ERROR) {
-        qDebug()<<"\tNumber of entries: "<< pTcpTable->dwNumEntries;
+        // qDebug()<<"Number of entries: "<< pTcpTable->dwNumEntries;
         QStandardItemModel* model = dynamic_cast<QStandardItemModel*>(ui->tableView->model());
         model->setRowCount(static_cast<int>(pTcpTable->dwNumEntries));
         for (int i = 0; i < (int) pTcpTable->dwNumEntries; i++) {
@@ -77,7 +117,7 @@ void PortInfoView::on_pbtn_refresh_clicked()
 
 
             // 状态、本地地址、远程地址、进程名、PID、进程路径
-            qDebug()<<"TCP["<<i<<"] State:"<<pTcpTable->table[i].dwState;
+            // qDebug()<<"TCP["<<i<<"] State:"<<pTcpTable->table[i].dwState;
             QString state;
             switch (pTcpTable->table[i].dwState) {
             case MIB_TCP_STATE_CLOSED:
@@ -121,16 +161,20 @@ void PortInfoView::on_pbtn_refresh_clicked()
                 break;
             }
 
+            QString processPath,processName;
+            GetProcessPath(pTcpTable->table[i].dwOwningPid,processPath,processName);
+
             model->setItem(i,0,new QStandardItem(state));
             model->setItem(i,1,new QStandardItem(QString("%1:%2").arg(szLocalAddr).arg(pTcpTable->table[i].dwLocalPort)));
             model->setItem(i,2,new QStandardItem(QString("%1:%2").arg(szRemoteAddr).arg(pTcpTable->table[i].dwRemotePort)));
-            model->setItem(i,3,new QStandardItem(state));
-            model->setItem(i,4,new QStandardItem(state));
-            model->setItem(i,5,new QStandardItem(state));
+            model->setItem(i,3,new QStandardItem(processName));
+            model->setItem(i,4,new QStandardItem(QString::number(pTcpTable->table[i].dwOwningPid)));
+            model->setItem(i,5,new QStandardItem(processPath));
         }
     } else {
-        qDebug()<<"\tGetTcpTable failed with "<< dwRetVal;
+        qDebug()<<"GetTcpTable failed with "<< dwRetVal;
         return;
     }
 #endif
 }
+
