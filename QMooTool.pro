@@ -46,7 +46,8 @@ SOURCES += \
     code/mainwidget.cpp \
     code/popcodedialog.cpp \
     code/timeconvertwidget.cpp \
-    code/xmleditwidget.cpp
+    code/xmleditwidget.cpp \
+    code/portinfoview.cpp
 
 HEADERS += \
     3rd/QCodeEditor/include/QCXXHighlighter \
@@ -88,12 +89,14 @@ HEADERS += \
     code/mainwidget.hpp \
     code/popcodedialog.hpp \
     code/timeconvertwidget.hpp \
-    code/xmleditwidget.hpp
+    code/xmleditwidget.hpp \
+    code/portinfoview.hpp
 
 FORMS += \
     ui/jsoneditwidget.ui \
     ui/mainwidget.ui \
     ui/popcodedialog.ui \
+    ui/portinfoview.ui \
     ui/timeconvertwidget.ui \
     ui/xmleditwidget.ui
 
