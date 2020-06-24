@@ -149,8 +149,7 @@ void JsonEditWidget::on_pbtn_LoadFile_clicked()
     QByteArray inputtext = f.readAll();
     QString outtext;
     // 是否为cbor文件
-    if(filename.size() > 5 &&
-            filename.right(5) == QStringLiteral(".cbor")) {
+    {
         QCborParserError e;
         QCborValue cbor = QCborValue::fromCbor(inputtext, &e);
         if(e.error == QCborError::NoError) {
@@ -159,8 +158,12 @@ void JsonEditWidget::on_pbtn_LoadFile_clicked()
                 outtext = QString::fromUtf8(QJsonDocument(json.toObject()).toJson());
             } else if(json.isArray()) {
                 outtext = QString::fromUtf8(QJsonDocument(json.toArray()).toJson());
-            }        }
-    }else{
+            }
+            return;
+        }
+    }
+    // 不是cbor，则是json
+    {
         QJsonDocument doc;
         if(processJsonText(this, inputtext, doc)) {
             outtext = QString::fromUtf8(inputtext);
@@ -191,7 +194,7 @@ void JsonEditWidget::on_pbtn_SaveFile_clicked()
         return;
     }
 
-    // 是否为cbor文件
+    // 是否为cbor文件(暂时只能根据后缀名确定，后期可考虑添加输出选项)
     if(savefilename.size() > 5 &&
             savefilename.right(5) == QStringLiteral(".cbor")) {
         QJsonDocument doc;
@@ -243,5 +246,6 @@ void JsonEditWidget::on_pbtn_ToXML_clicked()
         pDlg = pcdlg.value<PopCodeDialog*>();
     }
     pDlg->setText(QString::fromUtf8(xml.data(),xml.size()));
-    pDlg->exec();
+    // pDlg->exec();
+    pDlg->show();
 }
